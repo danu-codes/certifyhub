@@ -185,22 +185,6 @@ export async function createCertificatePDF({
   return pdf;
 }
 
-export async function downloadSingleCertificate({
-  template,
-  participant,
-  settings,
-}) {
-  const pdf = await createCertificatePDF({
-    template,
-    name: participant.name,
-    settings,
-  });
-
-  const filename = safeFileName(participant.name);
-
-  pdf.save(`${filename}_certificate.pdf`);
-}
-
 function safeFileName(name) {
   return name
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
@@ -209,49 +193,3 @@ function safeFileName(name) {
     .slice(0, 80) || "participant";
 }
 
-export async function downloadAllCertificates({
-  template,
-  participants,
-  settings,
-  onProgress,
-}) {
-  const zip = new JSZip();
-
-  for (let i = 0; i < participants.length; i++) {
-    const participant = participants[i];
-
-    const pdf = await createCertificatePDF({
-      template,
-      name: participant.name,
-      settings,
-    });
-
-    const blob = pdf.output("blob");
-
-    const filename = `${String(i + 1).padStart(3, "0")}_${safeFileName(
-      participant.name
-    )}.pdf`;
-
-    zip.file(filename, blob);
-
-    onProgress?.(
-      Math.round(((i + 1) / participants.length) * 100)
-    );
-  }
-
-  const zipBlob = await zip.generateAsync({
-    type: "blob",
-  });
-
-  const url = URL.createObjectURL(zipBlob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "CertifyHub_Certificates.zip";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
